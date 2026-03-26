@@ -1,0 +1,23 @@
+[project]
+name = "asyncron"
+version = "1.0.0"
+requires-python = ">=3.11"
+authors = [{name="Shreyansh Vatsyayan", email="shreyansh.vatsyayan@gmail.com"}]
+keywords = [
+    "async",
+    "cron"
+]
+description = "Async cron scheduling utility"
+
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
