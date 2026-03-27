@@ -62,25 +62,23 @@ class AsynCron:
             if inspect.iscoroutinefunction(c):
                 return c            
             return  AsynCron._wrap(c)
-        
         raise TypeError("Expecting Callable objects!")
 
     def _run(self, c: Awaitable) -> Any:
         if self._thread is not None and self._thread.is_alive():
             task = self.event_loop.create_task(coro=c, name=c.__name__)
-            fut = asyncio.Future()
-            async def done():
+            fut = asyncio.gather(task)
+            while not fut.done():
                 pass
-            
-        # print(self._thread is not None)
-        # print(self._thread.is_alive())
+            return fut.result()[0]
+
 
     def run(self, c: Union[Callable, Awaitable], *args, **kwargs) -> Any:
         if inspect.isawaitable(c):
             return self._run(c)
         if inspect.iscoroutinefunction(c):
             return self._run(c(*args, **kwargs))
-        print("Not awaitable")
+        raise TypeError("Expecting coroutine function or coroutine!")
 
     def __enter__(self):
         return self
