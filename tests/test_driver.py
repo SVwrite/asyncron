@@ -50,13 +50,17 @@ def test_wrapper():
 
     asyncio.run(main())
 
-
-def test_run():
-    def not_async():
-        return "Success"
-
+@pytest.fixture
+def new_asyncron():
     asyncron = AsynCron()
-    res = asyncron.run(asyncron.make_async(not_async))
+    yield asyncron
+    del asyncron
 
-    print("RESULT", res)
-    assert res == "Success"
+def test_run(new_asyncron):
+    def not_async():
+        return "Success", "Success"
+
+    # asyncron = AsynCron()
+    asyncron = new_asyncron
+    res = asyncron.run(asyncron.make_async(not_async))
+    assert res == ("Success", "Success")
