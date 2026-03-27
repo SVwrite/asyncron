@@ -1,8 +1,8 @@
 """
-The obejctive of this package is to make a pacakge that allows users to convert non-async functions to run as coroutines 
+The objective of this package is to make a pacakge that allows users to convert non-async functions to run as coroutines
 1. Generate a new event loop if there isn't any 
-2. Wrap a function in a wrappper to make it a coroutine 
-3. Run a cron job in the event loop inturrupting the sleep to make sure that job runs at time. 
+2. Wrap a function in a wrapper to make it a coroutine
+3. Run a cron job in the event loop interrupting the sleep to make sure that job runs at time.
 4. Adjustment for the time lost in execution and sleep 
 """
 from threading import Thread
@@ -70,7 +70,8 @@ class AsynCron:
             self._event_loop, self._thread = _get_event_loop()
             return self._run(c)
 
-        fut = asyncio.Future()
+        # fut = asyncio.Future()
+        fut = self.event_loop.create_future()
         async def _exec():
             res = await c
             fut.set_result(res)
@@ -80,8 +81,8 @@ class AsynCron:
         return fut.result()
             
 
-    def run(self, c: Union[Callable, Awaitable], *args, **kwargs) -> Any:
-        if inspect.isawaitable(c):
+    def run(self, c: Union[Callable, Coroutine], *args, **kwargs) -> Any:
+        if inspect.iscoroutine(c):
             return self._run(c)
         if inspect.iscoroutinefunction(c):
             return self._run(c(*args, **kwargs))
@@ -125,7 +126,7 @@ def _get_event_loop() -> tuple[AbstractEventLoop, Thread]:
         new_thread = threading.Thread(target=love, args=(loop,))
         new_thread.start()
         while not loop.is_running():
-            time.sleep(0.2)
+            pass
     LOOP = loop 
     THREAD = new_thread
     return loop, new_thread

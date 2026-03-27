@@ -38,8 +38,6 @@ def test_wrapper():
         async1 = AsynCron.make_async(not_async)
         async2 = AsynCron.make_async(not_async)
 
-        print(async1, async2)
-
         res1 = await async1("User")
         res2 = await async2(name="User")
 
@@ -66,3 +64,4 @@ def test_run(new_asyncron):
     asyncron = new_asyncron
     res = asyncron.run(asyncron.make_async(not_async))
     assert res == "Success"
+
