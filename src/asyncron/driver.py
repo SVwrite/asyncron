@@ -13,6 +13,7 @@ import inspect
 import threading
 import time
 import threading
+from concurrent.futures import Future
 import sys
 
 
@@ -70,8 +71,7 @@ class AsynCron:
             self._event_loop, self._thread = _get_event_loop()
             return self._run(c)
 
-        # fut = asyncio.Future()
-        fut = self.event_loop.create_future()
+        fut = Future()
         async def _exec():
             res = await c
             fut.set_result(res)
