@@ -44,7 +44,27 @@ class AsynCron:
 
         if self._thread is not None:
             self._thread.join()
+    
+    @staticmethod
+    def _wrap(c: Callable):
+        async def a(*args, **kwargs):
+            return c(*args, **kwargs)
+        a.__name__ = c.__name__
+        return a
+    
+    @staticmethod
+    def make_async(c : Union[Callable, Awaitable]) -> Callable:
+        if isinstance(c, Callable):
+            if inspect.iscoroutinefunction(c):
+                return c            
+            return  AsynCron._wrap(c)
         
+        raise TypeError("Expecting Callable objects!")
+
+
+        
+
+
 
     def __enter__(self):
         pass
@@ -64,9 +84,17 @@ def _get_event_loop() -> Union[asyncio.AbstractEventLoop, threading.Thread]:
     global LOOP, THREAD
     loop = LOOP
     new_thread = THREAD
-    if loop is not None and loop.is_running():
+
+    _thread_good = lambda : THREAD is not None and THREAD.is_alive()
+    _loop_good = lambda : loop is not None and loop.is_running()
+
+    if _thread_good and _loop_good:
         return loop, new_thread
     
+    if _thread_good:
+        # Wait for thread to stop 
+        THREAD.join(timeout=1)
+
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
@@ -75,8 +103,6 @@ def _get_event_loop() -> Union[asyncio.AbstractEventLoop, threading.Thread]:
         def love(lp):
             try:
                 lp.run_forever()
-            except Exception as e:
-                print(e)
             finally:
                 lp.run_until_complete(loop.shutdown_asyncgens())
                 lp.close()
@@ -94,10 +120,6 @@ def run_async(fn: Callable) -> Coroutine[None, None, None]:
     # nue = fn()
     nue = None
 
-    # if isinstance(nue, Awaitable):
-    #     print("1")
-    # if isinstance(nue, Coroutine):
-    #     print(2)
 
     if inspect.iscoroutinefunction(fn):
         print("Function is a Coroutine function")
@@ -121,11 +143,7 @@ def run_async(fn: Callable) -> Coroutine[None, None, None]:
     # task = asyncio.create_task(fn())
     task = loop.create_task(fn())
     time.sleep(2)
-    # loop: 
-    # if thread:
-    #     loop.call_soon_threadsafe(fn())
-    # else:
-    #     loop.call_soon(fn)
+
     
     close(loop)
 
