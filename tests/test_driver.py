@@ -1,6 +1,7 @@
 import pytest
 from asyncron import AsynCron
 import asyncio
+import time 
 
 def test_singleton():
     cron1 = AsynCron()
@@ -58,6 +59,7 @@ def new_asyncron():
 
 def test_run(new_asyncron):
     def not_async():
+        time.sleep(2)
         return "Success", "Success"
 
     # asyncron = AsynCron()

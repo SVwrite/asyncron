@@ -65,13 +65,21 @@ class AsynCron:
         raise TypeError("Expecting Callable objects!")
 
     def _run(self, c: Awaitable) -> Any:
-        if self._thread is not None and self._thread.is_alive():
-            task = self.event_loop.create_task(coro=c, name=c.__name__)
-            fut = asyncio.gather(task)
-            while not fut.done():
-                pass
-            return fut.result()[0]
+        if self._thread is not None and self._thread.is_alive() is False:
+            self._event_loop, self._thread = _get_event_loop()
+            return self._run(c)
+    
+        # TODO: make it threadsafe; send the coroutine to other thread use future 
+        fut = self.event_loop.call_soon_threadsafe(asyncio.gather(c))
+        # result = future.result()
 
+
+        # task = self.event_loop.create_task(coro=c, name=c.__name__)
+        # fut = asyncio.gather(task)
+        while not fut.done():
+            pass
+        return fut.result()[0]
+            
 
     def run(self, c: Union[Callable, Awaitable], *args, **kwargs) -> Any:
         if inspect.isawaitable(c):
