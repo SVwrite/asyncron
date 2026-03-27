@@ -11,7 +11,22 @@ def test_singleton():
     del cron1
     del cron2
     assert id1 == id2
-    
+
+def test_teardown():
+    cron = AsynCron()
+    thread = cron.thread
+    loop = cron.event_loop
+    assert thread.is_alive() is True 
+    assert loop.is_running() is True
+    del cron
+    assert thread.is_alive() is False
+    assert loop.is_running() is False
+    assert loop.is_closed() is True
+
+def test_new_thread():
+    cron1 = AsynCron()
+    assert cron1.thread is not None
+    assert cron1.thread.is_alive()
     
 def test_wrapper():
     async def main():
@@ -36,9 +51,12 @@ def test_wrapper():
     asyncio.run(main())
 
 
+def test_run():
+    def not_async():
+        return "Success"
 
-    # async def _run(c):
-    #     await c
+    asyncron = AsynCron()
+    res = asyncron.run(asyncron.make_async(not_async))
 
-    # asyncio.run(_run(coro1))
-    # asyncio.run(_run(coro2))
+    print("RESULT", res)
+    assert res == "Success"

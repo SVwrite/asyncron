@@ -5,7 +5,7 @@ The obejctive of this package is to make a pacakge that allows users to convert 
 3. Run a cron job in the event loop inturrupting the sleep to make sure that job runs at time. 
 4. Adjustment for the time lost in execution and sleep 
 """
-from typing import Callable, Coroutine, Awaitable, Tuple, Union
+from typing import Callable, Coroutine, Awaitable, Tuple, Union, Any
 import asyncio
 from asyncio import coroutines, BaseEventLoop
 import inspect
@@ -33,6 +33,10 @@ class AsynCron:
     def event_loop(self):
         return self._event_loop
     
+    @property
+    def thread(self):
+        return self._thread
+    
 
     def __del__(self):
         if self._event_loop is not None:
@@ -53,7 +57,7 @@ class AsynCron:
         return a
     
     @staticmethod
-    def make_async(c : Union[Callable, Awaitable]) -> Callable:
+    def make_async(c : Union[Callable]) -> Callable:
         if isinstance(c, Callable):
             if inspect.iscoroutinefunction(c):
                 return c            
@@ -61,22 +65,28 @@ class AsynCron:
         
         raise TypeError("Expecting Callable objects!")
 
+    def _run(self, c: Awaitable) -> Any:
+        if self._thread is not None and self._thread.is_alive():
+            task = self.event_loop.create_task(coro=c, name=c.__name__)
+            fut = asyncio.Future()
+            async def done():
+                pass
+            
+        # print(self._thread is not None)
+        # print(self._thread.is_alive())
 
-        
-
-
+    def run(self, c: Union[Callable, Awaitable], *args, **kwargs) -> Any:
+        if inspect.isawaitable(c):
+            return self._run(c)
+        if inspect.iscoroutinefunction(c):
+            return self._run(c(*args, **kwargs))
+        print("Not awaitable")
 
     def __enter__(self):
-        pass
-
+        return self
+    
     def __exit__(self, exc_type, exc, tb):
         pass
-
-
-
-def close(loop: asyncio.AbstractEventLoop):
-    loop.call_soon_threadsafe(loop.stop)
-
 
 LOOP: asyncio.AbstractEventLoop = None
 THREAD: threading.Thread = None
@@ -88,10 +98,10 @@ def _get_event_loop() -> Union[asyncio.AbstractEventLoop, threading.Thread]:
     _thread_good = lambda : THREAD is not None and THREAD.is_alive()
     _loop_good = lambda : loop is not None and loop.is_running()
 
-    if _thread_good and _loop_good:
+    if _thread_good() and _loop_good():
         return loop, new_thread
     
-    if _thread_good:
+    if _thread_good():
         # Wait for thread to stop 
         THREAD.join(timeout=1)
 
@@ -115,47 +125,6 @@ def _get_event_loop() -> Union[asyncio.AbstractEventLoop, threading.Thread]:
     THREAD = new_thread
     return loop, new_thread
 
-def run_async(fn: Callable) -> Coroutine[None, None, None]:
-    print(fn)
-    # nue = fn()
-    nue = None
-
-
-    if inspect.iscoroutinefunction(fn):
-        print("Function is a Coroutine function")
-    if inspect.iscoroutine(fn):
-        print("Function is a coroutine")
-    if inspect.iscoroutine(nue):
-        print("Nue is coroutine")
-    if inspect.iscoroutinefunction(nue):
-        print("Nue is not a coroutine function")
-
-    if isinstance(fn, Callable):
-        print("function is callable")
-    if isinstance(fn, Awaitable):
-        print("function is awaitable")
-    
-    if isinstance(fn, Coroutine):
-        print("Function is a Coroutine")
-    loop, thread = _get_event_loop()
-    print(loop.is_running(), "Loop running")
-
-    # task = asyncio.create_task(fn())
-    task = loop.create_task(fn())
-    time.sleep(2)
-
-    
-    close(loop)
-
-
-    
-
-    # print(loop)
-    # nue.close()
-
-async def some_function():
-    print("I am running in an event loop")
-
 
 if __name__ == "__main__":
-    run_async(some_function)
+    pass
