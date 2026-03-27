@@ -1,7 +1,7 @@
 [project]
 name = "asyncron"
 version = "1.0.0"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 authors = [{name="Shreyansh Vatsyayan", email="shreyansh.vatsyayan@gmail.com"}]
 keywords = [
     "async",

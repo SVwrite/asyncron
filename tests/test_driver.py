@@ -60,9 +60,9 @@ def new_asyncron():
 def test_run(new_asyncron):
     def not_async():
         time.sleep(2)
-        return "Success", "Success"
+        return "Success"
 
     # asyncron = AsynCron()
     asyncron = new_asyncron
     res = asyncron.run(asyncron.make_async(not_async))
-    assert res == ("Success", "Success")
+    assert res == "Success"

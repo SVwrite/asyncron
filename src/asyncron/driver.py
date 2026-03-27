@@ -5,9 +5,10 @@ The obejctive of this package is to make a pacakge that allows users to convert 
 3. Run a cron job in the event loop inturrupting the sleep to make sure that job runs at time. 
 4. Adjustment for the time lost in execution and sleep 
 """
+from threading import Thread
 from typing import Callable, Coroutine, Awaitable, Tuple, Union, Any
 import asyncio
-from asyncio import coroutines, BaseEventLoop
+from asyncio import coroutines, BaseEventLoop, AbstractEventLoop
 import inspect
 import threading
 import time
@@ -24,7 +25,7 @@ class AsynCron:
         try:
             if self._event_loop is not None and hasattr(self._event_loop, "is_running"):
                 if self._event_loop.is_running():
-                    return self._event_loop
+                    return
         except RuntimeError:
             pass
         self._event_loop, self._thread = _get_event_loop()
@@ -64,21 +65,19 @@ class AsynCron:
             return  AsynCron._wrap(c)
         raise TypeError("Expecting Callable objects!")
 
-    def _run(self, c: Awaitable) -> Any:
+    def _run(self, c: Coroutine) -> Any:
         if self._thread is not None and self._thread.is_alive() is False:
             self._event_loop, self._thread = _get_event_loop()
             return self._run(c)
-    
-        # TODO: make it threadsafe; send the coroutine to other thread use future 
-        fut = self.event_loop.call_soon_threadsafe(asyncio.gather(c))
-        # result = future.result()
 
-
-        # task = self.event_loop.create_task(coro=c, name=c.__name__)
-        # fut = asyncio.gather(task)
+        fut = asyncio.Future()
+        async def _exec():
+            res = await c
+            fut.set_result(res)
+        asyncio.run_coroutine_threadsafe(_exec(), self._event_loop)
         while not fut.done():
             pass
-        return fut.result()[0]
+        return fut.result()
             
 
     def run(self, c: Union[Callable, Awaitable], *args, **kwargs) -> Any:
@@ -96,7 +95,7 @@ class AsynCron:
 
 LOOP: asyncio.AbstractEventLoop = None
 THREAD: threading.Thread = None
-def _get_event_loop() -> Union[asyncio.AbstractEventLoop, threading.Thread]:
+def _get_event_loop() -> tuple[AbstractEventLoop, Thread]:
     global LOOP, THREAD
     loop = LOOP
     new_thread = THREAD
