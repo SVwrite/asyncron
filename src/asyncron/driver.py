@@ -14,6 +14,7 @@ import threading
 import time
 import threading
 from concurrent.futures import Future
+import contextlib
 import sys
 
 
@@ -41,15 +42,9 @@ class AsynCron:
     
 
     def __del__(self):
-        if self._event_loop is not None:
-            if self._event_loop.is_running():
-                if self._thread is None:
-                    self._event_loop.stop()
-                else:
-                    self._event_loop.call_soon_threadsafe(self._event_loop.stop)
-
-        if self._thread is not None:
-            self._thread.join()
+        if self._event_loop is not None and not self._event_loop.is_closed():
+            self._event_loop.call_soon_threadsafe(self._event_loop.stop)
+        self._thread.join()
     
     @staticmethod
     def _wrap(c: Callable):
@@ -71,21 +66,23 @@ class AsynCron:
             self._event_loop, self._thread = _get_event_loop()
             return self._run(c)
 
-        fut = Future()
-        async def _exec():
+        # if self.thread is not None:
+        async def _exec(future: Future):
             res = await c
-            fut.set_result(res)
-        asyncio.run_coroutine_threadsafe(_exec(), self._event_loop)
+            future.set_result(res)
+        fut = Future()
+        asyncio.run_coroutine_threadsafe(_exec(fut), self._event_loop)
         while not fut.done():
             pass
         return fut.result()
-            
 
     def run(self, c: Union[Callable, Coroutine], *args, **kwargs) -> Any:
         if inspect.iscoroutine(c):
             return self._run(c)
+
         if inspect.iscoroutinefunction(c):
             return self._run(c(*args, **kwargs))
+
         raise TypeError("Expecting coroutine function or coroutine!")
 
     def __enter__(self):
@@ -111,22 +108,22 @@ def _get_event_loop() -> tuple[AbstractEventLoop, Thread]:
         # Wait for thread to stop 
         THREAD.join(timeout=1)
 
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-        loop = asyncio.new_event_loop()
-        def love(lp):
-            try:
+    loop = None
+    loop = asyncio.new_event_loop()
+    def _keep_alive(lp):
+        try:
+            with contextlib.suppress(RuntimeError):
                 lp.run_forever()
-            finally:
+        finally:
+            if lp.is_running():
                 lp.run_until_complete(loop.shutdown_asyncgens())
-                lp.close()
+            lp.close()
 
-        new_thread = threading.Thread(target=love, args=(loop,))
-        new_thread.start()
-        while not loop.is_running():
-            pass
+    new_thread = threading.Thread(target=_keep_alive, args=(loop,))
+    new_thread.start()
+    while not loop.is_running():
+        pass
+
     LOOP = loop 
     THREAD = new_thread
     return loop, new_thread

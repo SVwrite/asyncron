@@ -65,3 +65,17 @@ def test_run(new_asyncron):
     res = asyncron.run(asyncron.make_async(not_async))
     assert res == "Success"
 
+def test_async_run():
+    async def async_func():
+        await asyncio.sleep(2)
+        return "Success"
+
+    async def main():
+        asyncron = AsynCron()
+        assert asyncron.thread is not None
+        assert asyncron.thread.is_alive()
+        assert asyncron.event_loop is not None
+        res = asyncron.run(async_func)
+        assert res == "Success"
+
+    asyncio.run(main())
