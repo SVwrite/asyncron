@@ -16,6 +16,7 @@ import threading
 from concurrent.futures import Future
 import contextlib
 import sys
+import functools
 
 
 class AsynCron:
@@ -48,9 +49,9 @@ class AsynCron:
     
     @staticmethod
     def _wrap(c: Callable):
+        @functools.wraps(c)
         async def a(*args, **kwargs):
             return c(*args, **kwargs)
-        a.__name__ = c.__name__
         return a
     
     @staticmethod

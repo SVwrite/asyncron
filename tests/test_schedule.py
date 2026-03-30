@@ -29,6 +29,6 @@ def test_schedule_conversions():
     assert to_timedelta(sch) == datetime.timedelta(seconds=70)
 
     now = datetime.datetime.now()
-    assert to_datetime(now=now, sch=sch).second == now.second + 10
+    assert to_datetime(now=now, sch=sch).second % 60 == (now.second + 10) % 60
     assert to_datetime(now=now, sch=sch).minute == now.minute + 1
 
