@@ -91,6 +91,8 @@ class AsynCron:
     def __exit__(self, exc_type, exc, tb):
         pass
 
+    # def schedule(self, c: Union[Callable, Coroutine], every: )
+
 LOOP: asyncio.AbstractEventLoop = None
 THREAD: threading.Thread = None
 def _get_event_loop() -> tuple[AbstractEventLoop, Thread]:
